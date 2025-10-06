@@ -41,8 +41,8 @@ module horno(
               );
 
     // output declaration of module adc_slave
-    assign adc_enable = (`clk_250 & (state == `high | state == `set | state == `low));
-    wire [15:0] digit_adc;
+    assign adc_enable = (`clk_250);
+    wire [7:0] digit_adc;
     wire [7:0] current_temp;
     wire [7:0] set_temp;
     wire [3:0] set_time;
@@ -57,13 +57,18 @@ module horno(
                   .set_time    	    (set_time      )
               );
 
+    // input declaration of module timer
+    reg start_timer = 1'b0;
+
     // output declaration of module timer
     wire [7:0] digit_time;
     wire [3:0] current_time;
 
     timer u_timer(
               .clk          	(`clk_1000     ),
-              .rst          	(rst_timer     ),
+              .rst          	(start         ),
+              .stop             (stop          ),
+              .start_timer  	(start_timer   ),
               .set_time     	(set_time      ),
               .digit_time   	(digit_time    ),
               .current_time 	(current_time  )
@@ -71,74 +76,67 @@ module horno(
 
     // == States ==
 
-    reg [2:0] state = `stop;
-    reg [2:0] nextstate = `stop;
-    reg rst_timer = 1'b1;
+    reg [1:0] state = `idle;
+    reg [1:0] next_state = `idle;
 
     // == Main System ==
 
-    // state register
-    always @(posedge clk, posedge stop, posedge start)
+    always @(posedge clk or posedge stop)
+    begin
         if (stop)
-            state <= `stop;
-    // else if (current_time >= set_time)
-    //     state <= `stop;
-    // else if (set_temp < `interval)
-    //     state <= `stop;
+            state <= `idle;
         else
-            state <= nextstate;
-    // next state logic
+            state <= next_state;
+    end
+
+    // mealy FSM
     always @(posedge clk)
     begin
         case (state)
-            `stop:
+            `idle:
             begin
-                rst_timer = 1'b1;
-                // if (stop)
-                //     nextstate = `stop;
-                // if (!start)
-                //     nextstate = `stop;
-                if (start)
-                begin
-                    rst_timer = 1'b0;
-                    nextstate = `low;
-                end
+                start_timer = 1'b0;
+                if (stop)
+                    next_state = `idle;
+                else if (start)
+                    next_state = `low;
+                else
+                    next_state = `idle;
+            end
+            `low:
+            begin
+                if (current_temp >= `lower_limit)
+                    next_state = `set;
+                else
+                    next_state = `low;
+            end
+            `set:
+            begin
+                start_timer = 1'b1;
+                if (current_temp > `upper_limit)
+                    next_state = `high;
+                else if (current_temp < `lower_limit)
+                    next_state = `low;
+                else
+                    next_state = `set;
             end
             `high:
-                if (current_time >= set_time)
-                    nextstate = `timeout;
-                else if (current_temp >= `upper_limit)
-                    nextstate = `high;
+            begin
+                if (current_temp <= `upper_limit)
+                    next_state = `set;
                 else
-                    nextstate = `set;
-            `set:
-                if (current_time >= set_time)
-                    nextstate = `timeout;
-                else if (current_temp >= `upper_limit)
-                    nextstate = `high;
-                else if (current_temp <= `lower_limit)
-                    nextstate = `low;
-                else
-                    nextstate = `set;
-            `low:
-                if (current_time >= set_time)
-                    nextstate = `timeout;
-                else if (current_temp <= `lower_limit)
-                    nextstate = `low;
-                else
-                    nextstate = `set;
-            `idle:
-                rst_timer = 1'b1;
+                    next_state = `high;
+            end
             default:
-                nextstate = `stop;
+                next_state = `idle;
         endcase
+        if (current_time == 4'd0)
+            next_state = `idle;
     end
     // output logic
-    // Mealy FSM
-    // assign `led_stop = (state == `stop);
-    assign `led_start = (state == `high | state == `set | state == `low);
+    assign `led_start = ~stop;
     assign `led_high = (current_temp >= `upper_limit & state == `high);
-    assign `led_set = (~(current_temp >= `upper_limit) & ~(current_temp <= `lower_limit) & state == `set);
+    assign `led_set = (~(current_temp > `upper_limit) & ~(current_temp < `lower_limit) & state == `set);
     assign `led_low = (current_temp <= `lower_limit & state == `low);
     assign horno = (current_temp <= `lower_limit & state == `low);
 

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module timer_up;
+module timer_tb;
 
     reg clk = 0;
     reg [3:0] set_timer = 0;
