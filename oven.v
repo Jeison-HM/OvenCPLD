@@ -1,6 +1,6 @@
 `include "macros.v"
 
-module horno(
+module oven(
         input wire clk,
         input wire start,
         input wire stop,
@@ -10,7 +10,7 @@ module horno(
         output wire [7:0] D_out,
         output wire [3:0] led,
         output reg led_stop,
-        output wire horno,
+        output wire oven,
         output wire adc_enable
     );
 
@@ -138,7 +138,7 @@ module horno(
     assign `led_high = (current_temp >= `upper_limit & state == `high);
     assign `led_set = (~(current_temp > `upper_limit) & ~(current_temp < `lower_limit) & state == `set);
     assign `led_low = (current_temp <= `lower_limit & state == `low);
-    assign horno = (current_temp <= `lower_limit & state == `low);
+    assign oven = (current_temp <= `lower_limit & state == `low);
 
     // == Stop Blink ==
 
@@ -150,5 +150,4 @@ module horno(
             led_stop <= 1'b0;
     end
 
-
-endmodule //horno
+endmodule //oven
