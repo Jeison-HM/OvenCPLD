@@ -1,68 +1,77 @@
-// == Main System ==
+`define stop 3'd0
+`define high 3'd1
+`define set 3'd2
+`define low 3'd3
 
-always @(posedge clk or posedge stop or posedge start)
-begin
-    if (stop)
-    begin
-        horno <= 1'b0;
-        led[4:1] <= 4'b0;
-    end
-    else if (start)
-    begin
-        // SHOULD LEDS BE CONNECTED WITH STATE START OR STOP? In that case both leds could be on.
-        `led_start <= 1'b1;
+`define interval 8'd10
+`define upper_limit (set_temp + `interval)
+`define lower_limit (set_temp - `interval)
 
-        if (current_time >= set_timer)
-        begin
-            // Timeout
-            horno <= 1'b0;
-            `led_high <= 1'b0;
-            `led_set <= 1'b0;
-            `led_low <= 1'b0;
-        end
-        else
-        begin
-            // State Machine
+module oven(
+        input  clk,
+        input  stop,
+        input start,
+        input [7:0] temp,
+        input [7:0] set_temp,
+        input [3:0] timer,
+        input [3:0] set_timer,
+        output led_stop,
+        output led_start,
+        output led_high,
+        output led_set,
+        output led_low,
+        output horno
+    );
 
-            case (state)
-                `state_high:
-                begin
-                    if (`temp >= (set_temp + 8'd10))
-                    begin
-                        horno <= 1'b0;
-                        `led_high <= 1'b1;
-                        `led_set <= 1'b0;
-                        `led_low <= 1'b0;
-                    end
-                    else
-                        state <= `state_set;
-                end
-                `state_set:
-                begin
-                    if (`temp >= set_temp)
-                    begin
-                        horno <= 1'b0;
-                        `led_high <= 1'b0;
-                        `led_set <= 1'b1;
-                        `led_low <= 1'b0;
-                        state <= `state_high;
-                    end
-                    else
-                        state <= `state_low;
-                end
-                `state_low:
-                    if (`temp <= (set_temp - 8'd10))
-                    begin
-                        horno <= 1'b1;
-                        `led_high <= 1'b0;
-                        `led_set <= 1'b0;
-                        `led_low <= 1'b1;
-                    end
-                    else
-                        state <= `state_set;
-                default:
-                    state <= `state_high;
-            endcase
-        end
-    end
-end
+
+    reg [2:0] state = `stop;
+    reg [2:0] nextstate = `stop;
+
+    // state register
+    always @(posedge clk, posedge stop, posedge start)
+        if (stop)
+            state <= `stop;
+        else if (timer >= set_timer)
+            state <= `stop;
+        else if (set_temp < `interval)
+            state <= `stop;
+        else if (start)
+            state <= nextstate;
+    // next state logic
+    always @(posedge clk)
+    case (state)
+        `stop:
+            if (stop)
+                nextstate = `stop;
+            else
+                nextstate = `low;
+        `high:
+            if (temp >= `upper_limit)
+                nextstate = `high;
+            else
+                nextstate <= `set;
+        `set:
+            if (temp >= `upper_limit)
+                nextstate <= `high;
+            else if (temp <= `lower_limit)
+                nextstate = `low;
+            else
+                nextstate = `set;
+        `low:
+            if (temp <= `lower_limit)
+                nextstate = `low;
+            else
+                nextstate = `set;
+        default:
+            nextstate = `stop;
+    endcase
+    // output logic
+    // Mealy FSM
+    assign led_stop = (state == `stop);
+    assign led_start = (state == `high | state == `set | state == `low);
+    assign led_high = (temp >= `upper_limit & state == `high);
+    assign led_set = (~(temp >= `upper_limit) & ~(temp <= `lower_limit) & state == `set);
+    assign led_low = (temp <= `lower_limit & state == `low);
+    assign horno = (temp <= `lower_limit & state == `low);
+
+endmodule
