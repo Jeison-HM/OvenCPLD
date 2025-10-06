@@ -5,7 +5,8 @@
 <!-- GitHub Badges Section -->
 <p align="center">
   <img alt="Verilog" height="24.5px" style="padding-right:5px;" src="https://custom-icon-badges.demolab.com/badge/-Verilog-black?style=for-the-badge&logo=verilog&logoColor=white&logoSize=auto"/>
-  <img alt="Quartus Prime" height="24.5px" style="padding-right:5px;" src="https://custom-icon-badges.demolab.com/badge/-Quartus Prime-white?style=for-the-badge&logo=altera&logoColor=white&logoSize=auto"/>
+  <img alt="Quartus Prime" height="24.5px" style="padding-right:5px;" src="https://custom-icon-badges.demolab.com/badge/-Quartus Prime-024496?style=for-the-badge&logo=altera&logoColor=white&logoSize=auto"/>
+  <img alt="Arduino" height="24.5px" style="padding-right:5px;" src="https://custom-icon-badges.demolab.com/badge/-Arduino-16969b?style=for-the-badge&logo=arduino&logoColor=white&logoSize=auto"/>
   <img alt="MIT" height="24.5px" style="padding-right:5px;" src="https://custom-icon-badges.demolab.com/badge/License-MIT-ad0808?style=for-the-badge"/>
     <br />
 </p>
